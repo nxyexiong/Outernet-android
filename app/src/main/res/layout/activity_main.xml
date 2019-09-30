@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="3mm">
+        <TextView style="@style/item" android:text="Server ip:"/>
+        <EditText style="@style/item" android:id="@+id/addr_edit"/>
+        <TextView style="@style/item" android:text="Server port:"/>
+        <EditText style="@style/item" android:id="@+id/port_edit" android:inputType="number"/>
+        <TextView style="@style/item" android:text="User name:"/>
+        <EditText style="@style/item" android:id="@+id/user_edit"/>
+        <TextView style="@style/item" android:text="Secret:"/>
+        <EditText style="@style/item" android:id="@+id/secret_edit"/>
+
+        <Button style="@style/item" android:id="@+id/connect_btn" android:text="connect"/>
+    </LinearLayout>
+</ScrollView>
