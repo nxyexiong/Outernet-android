@@ -17,6 +17,7 @@ class Buffer {
 public:
     void init();
     void uninit();
+    void set_len(int len);
     int get_len();
     uint8_t* get_buf();
     void insert_front(Buffer* buffer);
@@ -25,6 +26,7 @@ public:
     void insert_back(uint8_t* buf, int len);
     void copy(Buffer* buffer);
     void copy(uint8_t* buf, int len);
+    void alloc(int len);
 };
 
 #endif //OUTERNET_BUFFER_H

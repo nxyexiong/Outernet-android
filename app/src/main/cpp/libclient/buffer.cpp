@@ -25,6 +25,10 @@ void Buffer::expand() {
     size *= 2;
 }
 
+void Buffer::set_len(int len) {
+    this->len = len;
+}
+
 int Buffer::get_len() {
     return len;
 }
@@ -60,4 +64,9 @@ void Buffer::copy(Buffer* buffer) {
 void Buffer::copy(uint8_t* buf, int len) {
     while (len > this->size) expand();
     memcpy(this->buf, buf, len);
+    this->len = len;
+}
+
+void Buffer::alloc(int len) {
+    while (len > this->size) expand();
 }

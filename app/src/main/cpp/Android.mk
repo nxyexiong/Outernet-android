@@ -114,7 +114,8 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/libclient
 
 CLIENT_SOURCES := client.cpp \
                   crypto.cpp \
-                  buffer.cpp
+                  buffer.cpp \
+                  utils.cpp
 
 LOCAL_SRC_FILES := $(addprefix libclient/, $(CLIENT_SOURCES))
 
