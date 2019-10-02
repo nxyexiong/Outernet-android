@@ -4,6 +4,7 @@
 
 #include "jni.h"
 #include <android/log.h>
+#include <client.h>
 
 JavaVM* g_vm = nullptr;
 jobject g_obj = nullptr;
@@ -14,5 +15,7 @@ Java_com_nxyexiong_outernet_NativeHelper_test(
         jobject thiz,
         jint input)
 {
-    return input * 2;
+    Client client;
+    client.init("119.28.23.25", 6666, "nxyexiong-sub0", "nxyexiong", 0);
+    return client.test(input) * 2;
 }
