@@ -34,6 +34,9 @@ SODIUM_SOURCE := \
 	crypto_stream/salsa20/stream_salsa20.c \
 	crypto_stream/salsa20/ref/salsa20_ref.c \
 	crypto_verify/sodium/verify.c \
+	crypto_hash/crypto_hash.c \
+	crypto_hash/sha256/hash_sha256.c \
+	crypto_hash/sha256/cp/hash_sha256_cp.c \
 	randombytes/randombytes.c \
 	randombytes/sysrandom/randombytes_sysrandom.c \
 	sodium/core.c \
@@ -96,6 +99,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libev
 LOCAL_CFLAGS += -DNDEBUG -DHAVE_CONFIG_H \
 				-I$(LOCAL_PATH)/libev
+
 LOCAL_SRC_FILES := \
 	libev/ev.c \
 	libev/event.c
@@ -121,11 +125,12 @@ LOCAL_SRC_FILES := $(addprefix libclient/, $(CLIENT_SOURCES))
 
 LOCAL_CFLAGS := -Wall \
                 -I$(LOCAL_PATH)/libev \
-                -I$(LOCAL_PATH)/libsodium/src/libsodium/include
-
-LOCAL_LDLIBS := -ldl -llog
+                -I$(LOCAL_PATH)/libsodium/src/libsodium/include \
+                -I$(LOCAL_PATH)/libsodium/src/libsodium/include/sodium
 
 LOCAL_STATIC_LIBRARIES := libev libsodium
+
+LOCAL_LDLIBS := -llog
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -144,6 +149,7 @@ JNI_SOURCES := jni_caller.cpp
 LOCAL_SRC_FILES := $(addprefix libjni/, $(JNI_SOURCES))
 
 LOCAL_CFLAGS := -Werror=return-type \
+                -I$(LOCAL_PATH)/libev \
                 -I$(LOCAL_PATH)/libclient
 
 LOCAL_LDLIBS := -ldl -llog

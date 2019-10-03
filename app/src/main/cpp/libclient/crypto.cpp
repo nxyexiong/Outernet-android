@@ -12,7 +12,8 @@ int Crypto::init(char* secret) {
         return -1;
 
     int len = strlen(secret);
-    crypto_hash_sha256(key, (unsigned char *)secret, len);
+    sha256(key, (unsigned char *)secret, len);
+    return 0;
 }
 
 void Crypto::encrypt(Buffer* output, Buffer* input) {
@@ -26,4 +27,8 @@ void Crypto::decrypt(Buffer* output, Buffer* input){
     output->alloc(input->get_len() - 8);
     crypto_stream_chacha20_xor(output->get_buf(), input->get_buf() + 8, input->get_len() - 8, input->get_buf(), key);
     output->set_len(input->get_len() - 8);
+}
+
+void Crypto::sha256(uint8_t* output, uint8_t * input, int inlen) {
+    crypto_hash_sha256(output, input, inlen);
 }

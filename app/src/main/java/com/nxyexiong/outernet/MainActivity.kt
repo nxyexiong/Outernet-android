@@ -52,9 +52,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleConnectBtn() {
         Log.i(TAG, "connect button clicked")
-        val native = NativeHelper()
-        val output = native.test(5)
-        Log.i(TAG, "from jni: $output")
+        var ret = NativeHelper.initClient("119.28.23.25", 6666, "nxyexiong-sub0", "nxyexiong")
+        Log.i(TAG, "client init with $ret")
+        ret = NativeHelper.runClient()
+        Log.i(TAG, "client run with $ret")
+
+        Thread.sleep(2000)
+        NativeHelper.checkHandshake()
 
         val addr = addrEdit.text.toString()
         val port = portEdit.text.toString()

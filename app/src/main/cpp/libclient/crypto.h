@@ -18,6 +18,7 @@ public:
     int init(char* secret);
     void encrypt(Buffer* output, Buffer* input);
     void decrypt(Buffer* output, Buffer* input);
+    void sha256(uint8_t* output, uint8_t * input, int inlen);
 };
 
 #endif //OUTERNET_CRYPTO_H

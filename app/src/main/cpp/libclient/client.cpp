@@ -2,13 +2,12 @@
 // Created by kottonye on 2019-10-01.
 //
 
+#include "client.h"
 #include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
-#include <pthread.h>
-#include "client.h"
 #include "crypto.h"
 #include "buffer.h"
 #include "utils.h"
@@ -16,7 +15,7 @@
 
 #define BUF_SIZE 2048
 
-void* loop_thread(void *) {
+void* loop_func(void *) {
     int code = ev_run(Client::get_instance().get_loop(), 0);
     return nullptr;
 }
@@ -43,21 +42,23 @@ Client::Client() {
     running = 0;
     handshaked = 0;
     loop = NULL;
+    memset(tun_ip, 0, sizeof(tun_ip));
+    memset(dst_ip, 0, sizeof(dst_ip));
 }
 
 Client::~Client() {
 }
 
 int Client::init(char* host, int port, char* username, char* secret) {
-    Utils::sha256(identification, (uint8_t*)username, strlen(username));
-
     crypto = new Crypto;
     crypto->init(secret);
+    crypto->sha256(identification, (uint8_t*)username, strlen(username));
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    if (inet_aton(host, &server_addr.sin_addr) == 0) {
+    server_addr = new sockaddr_in;
+    memset(server_addr, 0, sizeof(server_addr));
+    server_addr->sin_family = AF_INET;
+    server_addr->sin_port = htons(port);
+    if (inet_aton(host, &server_addr->sin_addr) == 0) {
         return -1;
     }
 
@@ -101,12 +102,14 @@ int Client::run() {
         return  -1;
     }
 
-    pthread_create(&loop_thread, nullptr, loop_thread, nullptr);
+    pthread_create(&loop_thread, nullptr, loop_func, nullptr);
 
     ev_io_init(&sock_io, recv_cb, sock, EV_READ);
     ev_timer_init(&timer, timeout_cb, 1, 1);
     ev_io_start(loop, &sock_io);
     ev_timer_start(loop, &timer);
+
+    return 0;
 }
 
 void Client::stop() {
@@ -121,13 +124,13 @@ void Client::establish(int fd) {
     ev_io_start(loop, &iface_io);
 }
 
-ev_loop* Client::get_loop() {
+struct ev_loop* Client::get_loop() {
     return loop;
 }
 
 void Client::on_recv() {
     sockaddr addr;
-    int addrlen;
+    socklen_t addrlen;
     Buffer buf;
     buf.init();
     buf.alloc(BUF_SIZE);
@@ -145,16 +148,12 @@ void Client::on_recv() {
             return;
         }
         uint32_t* ipv4 = (uint32_t*)(buf.get_buf() + 1);
-        char tun_ip[50] = {0};
-        Utils::ipv4_to_str(*ipv4, tun_ip);
+        Utils::ipv4_to_str(*ipv4, tun_ip, true);
         ipv4 = (uint32_t*)(buf.get_buf() + 5);
-        char dst_ip[50] = {0};
-        Utils::ipv4_to_str(*ipv4, dst_ip);
+        Utils::ipv4_to_str(*ipv4, dst_ip, true);
         int port = buf.get_buf()[9] * 256 + buf.get_buf()[10];
 
-        server_addr.sin_port = htons(port);
-        // TODO: send tun_ip, dst_ip to kotlin to establish vpn
-
+        server_addr->sin_port = htons(port);
         handshaked = 1;
     } else {
         write(iface, buf.get_buf(), buf.get_len());
@@ -171,7 +170,7 @@ void Client::on_read() {
     buf.set_len(r);
 
     wrap_data(&buf);
-    sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)&server_addr, sizeof(server_addr));
+    sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)server_addr, sizeof(sockaddr_in));
 }
 
 void Client::on_timeout() {
@@ -187,7 +186,7 @@ void Client::on_timeout() {
     buf.insert_back(identification, 32);
 
     wrap_data(&buf);
-    sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)&server_addr, sizeof(server_addr));
+    sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)server_addr, sizeof(sockaddr_in));
 
     buf.uninit();
 }
@@ -195,7 +194,7 @@ void Client::on_timeout() {
 void Client::wrap_data(Buffer* buf) {
     Buffer tmp;
     tmp.init();
-    crypto->encrypt(&tmp, &buf);
+    crypto->encrypt(&tmp, buf);
     buf->copy(&tmp);
     tmp.uninit();
 }
@@ -203,7 +202,7 @@ void Client::wrap_data(Buffer* buf) {
 void Client::unwrap_data(Buffer* buf) {
     Buffer tmp;
     tmp.init();
-    crypto->decrypt(&tmp, &buf);
+    crypto->decrypt(&tmp, buf);
     buf->copy(&tmp);
     tmp.uninit();
 }

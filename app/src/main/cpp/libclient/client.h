@@ -6,31 +6,37 @@
 #define OUTERNET_CLIENT_H
 
 #include <stdint.h>
+#include <pthread.h>
 #include <ev.h>
 
+class JavaHelper;
 class Crypto;
 class Buffer;
 
 class Client {
-    ev_loop* loop;
+    pthread_t loop_thread;
+    struct ev_loop* loop;
     ev_io sock_io;
     ev_io iface_io;
     ev_timer timer;
     int inited;
     int running;
-    int handshaked;
     int port;
     uint8_t identification[32];
     Crypto* crypto;
     int sock;
-    sockaddr_in server_addr;
-    int iface;
+    struct sockaddr_in* server_addr;
 
     Client();
     ~Client();
     void wrap_data(Buffer* buf);
     void unwrap_data(Buffer* buf);
 public:
+    int handshaked;
+    char tun_ip[32];
+    char dst_ip[32];
+    int iface;
+
     static Client& get_instance()
     {
         static Client instance;
@@ -41,7 +47,7 @@ public:
     int run();
     void stop();
     void establish(int fd);
-    ev_loop* get_loop();
+    struct ev_loop* get_loop();
     void on_recv();
     void on_read();
     void on_timeout();
