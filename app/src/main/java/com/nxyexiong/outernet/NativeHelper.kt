@@ -7,6 +7,8 @@ import kotlin.system.exitProcess
 object NativeHelper {
     const val TAG = "NativeHelper"
 
+    var newTunnelCallback: ((String, String) -> Unit)? = null
+
     init {
         try {
             java.lang.System.loadLibrary("jni")
@@ -28,5 +30,6 @@ object NativeHelper {
     @JvmStatic
     fun onNewTunnel(tunIp: String, dstIp: String) {
         Log.i(TAG, "new tunnel $tunIp $dstIp")
+        newTunnelCallback?.invoke(tunIp, dstIp)
     }
 }

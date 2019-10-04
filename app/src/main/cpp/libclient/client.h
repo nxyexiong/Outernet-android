@@ -32,6 +32,7 @@ class Client {
     void wrap_data(Buffer* buf);
     void unwrap_data(Buffer* buf);
 public:
+    int loop_running;
     int handshaked;
     char tun_ip[32];
     char dst_ip[32];

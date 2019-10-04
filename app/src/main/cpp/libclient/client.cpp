@@ -16,7 +16,9 @@
 #define BUF_SIZE 2048
 
 void* loop_func(void *) {
+    Client::get_instance().loop_running = 1;
     int code = ev_run(Client::get_instance().get_loop(), 0);
+    Client::get_instance().loop_running = 0;
     return nullptr;
 }
 
@@ -40,6 +42,7 @@ Client::Client() {
     iface = 0;
     inited = 0;
     running = 0;
+    loop_running = 0;
     handshaked = 0;
     loop = NULL;
     memset(tun_ip, 0, sizeof(tun_ip));
@@ -50,6 +53,10 @@ Client::~Client() {
 }
 
 int Client::init(char* host, int port, char* username, char* secret) {
+    if (inited == 1) {
+        return 1;
+    }
+
     crypto = new Crypto;
     crypto->init(secret);
     crypto->sha256(identification, (uint8_t*)username, strlen(username));
@@ -87,16 +94,25 @@ int Client::init(char* host, int port, char* username, char* secret) {
 }
 
 void Client::uninit() {
+    if (inited == 0) {
+        return;
+    }
+
     delete crypto;
     crypto = NULL;
 
+    delete server_addr;
+
     close(sock);
 
-    ev_loop_destroy(loop);
-    loop = NULL;
+    inited = 0;
 }
 
 int Client::run() {
+    if (running == 1) {
+        return 1;
+    }
+
     loop = ev_loop_new(0);
     if (!loop) {
         return  -1;
@@ -109,13 +125,30 @@ int Client::run() {
     ev_io_start(loop, &sock_io);
     ev_timer_start(loop, &timer);
 
+    running = 1;
     return 0;
 }
 
 void Client::stop() {
+    if (running == 0) {
+        return;
+    }
     ev_io_stop(loop, &sock_io);
     ev_io_stop(loop, &iface_io);
     ev_timer_stop(loop, &timer);
+
+    ev_break(loop);
+
+    while (loop_running != 0) {
+        usleep(10);
+    }
+
+    if (loop != NULL) {
+        ev_loop_destroy(loop);
+        loop = NULL;
+    }
+
+    running = 0;
 }
 
 void Client::establish(int fd) {
@@ -129,8 +162,8 @@ struct ev_loop* Client::get_loop() {
 }
 
 void Client::on_recv() {
-    sockaddr addr;
-    socklen_t addrlen;
+    sockaddr addr = {0};
+    socklen_t addrlen = sizeof(addr);
     Buffer buf;
     buf.init();
     buf.alloc(BUF_SIZE);

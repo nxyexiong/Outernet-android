@@ -15,6 +15,7 @@
         <TextView style="@style/item" android:text="Secret:"/>
         <EditText style="@style/item" android:id="@+id/secret_edit"/>
 
-        <Button style="@style/item" android:id="@+id/connect_btn" android:text="connect"/>
+        <Button style="@style/item" android:id="@+id/connect_btn" android:text="Connect"/>
+        <Button style="@style/item" android:id="@+id/disconnect_btn" android:text="Disconnect"/>
     </LinearLayout>
 </ScrollView>
