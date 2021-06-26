@@ -11,9 +11,11 @@
 #include "crypto.h"
 #include "buffer.h"
 #include "utils.h"
-
+#include "protocol.h"
 
 #define BUF_SIZE 2048
+#define CONNECT_RETRY_TIMES 5
+
 
 void* loop_func(void *) {
     Client::get_instance().loop_running = 1;
@@ -44,6 +46,7 @@ Client::Client() {
     running = 0;
     loop_running = 0;
     handshaked = 0;
+    handshake_retry_cnt = 0;
     loop = NULL;
     memset(tun_ip, 0, sizeof(tun_ip));
     memset(dst_ip, 0, sizeof(dst_ip));
@@ -176,20 +179,24 @@ void Client::on_recv() {
     unwrap_data(&buf);
 
     if (handshaked == 0) {
-        if (buf.get_len() != 11 || buf.get_buf()[0] != 0x01) {
+        Protocol protocol;
+        int parsed = protocol.parse_header(&buf);
+        if (!protocol.is_header_complete() || protocol.cmd != CMD_SERVER_HANDSHAKE) {
             buf.uninit();
             return;
         }
-        uint32_t* ipv4 = (uint32_t*)(buf.get_buf() + 1);
-        Utils::ipv4_to_str(*ipv4, tun_ip, true);
-        ipv4 = (uint32_t*)(buf.get_buf() + 5);
-        Utils::ipv4_to_str(*ipv4, dst_ip, true);
-        int port = buf.get_buf()[9] * 256 + buf.get_buf()[10];
+        Utils::ipv4_to_str(protocol.tun_ip, tun_ip, true);
+        Utils::ipv4_to_str(protocol.dst_ip, dst_ip, true);
 
-        server_addr->sin_port = htons(port);
         handshaked = 1;
     } else {
-        write(iface, buf.get_buf(), buf.get_len());
+        Protocol protocol;
+        int parsed = protocol.parse_header(&buf);
+        if (!protocol.is_header_complete() || protocol.cmd != CMD_SERVER_DATA) {
+            buf.uninit();
+            return;
+        }
+        write(iface, buf.get_buf() + parsed, buf.get_len() - parsed);
     }
 
     buf.uninit();
@@ -199,8 +206,14 @@ void Client::on_read() {
     Buffer buf;
     buf.init();
     buf.alloc(BUF_SIZE);
-    int r = read(iface, buf.get_buf(), BUF_SIZE);
-    buf.set_len(r);
+
+    Protocol protocol;
+    protocol.cmd = CMD_CLIENT_DATA;
+    memcpy(protocol.identification, identification, 32);
+    protocol.get_header_bytes(&buf);
+
+    int r = read(iface, buf.get_buf() + buf.get_len(), BUF_SIZE - buf.get_len());
+    buf.set_len(buf.get_len() + r);
 
     wrap_data(&buf);
     sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)server_addr, sizeof(sockaddr_in));
@@ -212,11 +225,19 @@ void Client::on_timeout() {
         return;
     }
 
+    if (handshake_retry_cnt >= CONNECT_RETRY_TIMES) {
+        stop();
+        return;
+    }
+    handshake_retry_cnt++;
+
+    // start handshake
     Buffer buf;
     buf.init();
-    buf.get_buf()[0] = 0x01;
-    buf.set_len(1);
-    buf.insert_back(identification, 32);
+    Protocol protocol;
+    protocol.cmd = CMD_CLIENT_HANDSHAKE;
+    memcpy(protocol.identification, identification, 32);
+    protocol.get_header_bytes(&buf);
 
     wrap_data(&buf);
     sendto(sock, buf.get_buf(), buf.get_len(), 0, (sockaddr*)server_addr, sizeof(sockaddr_in));

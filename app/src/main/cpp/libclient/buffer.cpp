@@ -45,6 +45,7 @@ void Buffer::insert_front(uint8_t* buf, int len) {
     while (len + this->len > this->size) expand();
     memcpy(this->buf + len, this->buf, this->len);
     memcpy(this->buf, buf, len);
+    this->len += len;
 }
 
 void Buffer::insert_back(Buffer* buffer) {
@@ -69,4 +70,8 @@ void Buffer::copy(uint8_t* buf, int len) {
 
 void Buffer::alloc(int len) {
     while (len > this->size) expand();
+}
+
+void Buffer::clear() {
+    this->len = 0;
 }

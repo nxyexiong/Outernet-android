@@ -21,7 +21,6 @@ class Client {
     ev_timer timer;
     int inited;
     int running;
-    int port;
     uint8_t identification[32];
     Crypto* crypto;
     int sock;
@@ -34,6 +33,7 @@ class Client {
 public:
     int loop_running;
     int handshaked;
+    int handshake_retry_cnt;
     char tun_ip[32];
     char dst_ip[32];
     int iface;

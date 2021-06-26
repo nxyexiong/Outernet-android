@@ -27,6 +27,7 @@ public:
     void copy(Buffer* buffer);
     void copy(uint8_t* buf, int len);
     void alloc(int len);
+    void clear();
 };
 
 #endif //OUTERNET_BUFFER_H
